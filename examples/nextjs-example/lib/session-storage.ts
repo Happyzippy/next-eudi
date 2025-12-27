@@ -1,18 +1,23 @@
 // Session storage configuration for Vercel deployment
-// Uses Upstash Redis for serverless-compatible session storage
+// Uses standard Redis for serverless-compatible session storage
 
-import { Redis } from '@upstash/redis';
-import { UpstashStorage, configureSessionStorage } from '@emtyg/next-eudi';
+import { createClient } from 'redis';
+import { RedisStorage, configureSessionStorage } from '@emtyg/next-eudi';
 
-// Initialize Upstash Redis client with REDIS_URL from Vercel
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_TOKEN || ''
+// Initialize Redis client with REDIS_URL from Vercel
+const redis = createClient({
+  url: process.env.REDIS_URL
 });
 
-// Configure the library to use Upstash storage
+// Connect to Redis (required for standard redis client)
+redis.connect().catch(console.error);
+
+// Handle connection errors
+redis.on('error', (err) => console.error('Redis Client Error', err));
+
+// Configure the library to use Redis storage
 // This ensures sessions persist across serverless function invocations
-const storage = new UpstashStorage(redis);
+const storage = new RedisStorage(redis);
 configureSessionStorage(storage);
 
 export { storage };

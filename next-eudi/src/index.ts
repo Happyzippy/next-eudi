@@ -12,6 +12,7 @@ export type { VerificationSession } from './server/session.js';
 // Storage adapters
 export { MemoryStorage } from './server/storage/memory.js';
 export { UpstashStorage } from './server/storage/upstash.js';
+export { RedisStorage } from './server/storage/redis.js';
 export type { SessionStorage } from './server/storage/interface.js';
 
 // Client-side exports
