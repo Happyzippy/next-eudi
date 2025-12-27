@@ -3,10 +3,20 @@
 import type { SessionStorage } from './interface.js';
 import type { VerificationSession } from '../session.js';
 
+/**
+ * Minimal Redis client interface - compatible with standard 'redis' npm package
+ * This avoids requiring 'redis' as a direct dependency
+ */
+export interface RedisClient {
+  get(key: string): Promise<string | null>;
+  setEx(key: string, seconds: number, value: string): Promise<void>;
+  del(key: string): Promise<number>;
+}
+
 export class RedisStorage implements SessionStorage {
-  private redis: any;
+  private redis: RedisClient;
   
-  constructor(redisInstance: any) {
+  constructor(redisInstance: RedisClient) {
     this.redis = redisInstance;
   }
 
