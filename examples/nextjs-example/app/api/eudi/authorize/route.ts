@@ -49,14 +49,17 @@ export async function GET(request: NextRequest) {
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
+      redirect_uri: callbackUrl,
       exp: now + 3600, // 1 hour
       iat: now,
       dcql_query: {
         credentials: [{
-          format: 'mso_mdoc',
-          id: 'pid_credential',
+          format: 'dc+sd-jwt',
+          id: 'sd-jwt-pid',
           meta: {
-            doctype_value: 'eu.europa.ec.eudi.pid.1'
+            vct_values: [
+              'https://example.com/credentials/pid'
+            ]
           },
           claims: [{
             id: `age_over_${session.minAge}`,
@@ -66,7 +69,17 @@ export async function GET(request: NextRequest) {
       },
       client_metadata: {
         client_name: 'Next EUDI Verifier',
+        client_uri: request.nextUrl.origin,
+        redirect_uris: [callbackUrl],
         vp_formats: {
+          'vc+sd-jwt': {
+            'sd-jwt_alg_values': ['ES256'],
+            'kb-jwt_alg_values': ['ES256']
+          },
+          'dc+sd-jwt': {
+            'sd-jwt_alg_values': ['ES256'],
+            'kb-jwt_alg_values': ['ES256']
+          },
           mso_mdoc: {
             alg: ['ES256', 'ES384', 'ES512']
           }
