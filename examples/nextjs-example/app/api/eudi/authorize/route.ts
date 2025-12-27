@@ -89,7 +89,19 @@ export async function GET(request: NextRequest) {
       throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
     }
     
-    const privateKey = await importPKCS8(privateKeyPem, 'ES256');
+    // Handle both formats: with actual newlines or with literal \n
+    const formattedKey = privateKeyPem.includes('\\n') 
+      ? privateKeyPem.replace(/\\n/g, '\n')
+      : privateKeyPem;
+    
+    console.log('[AUTHORIZE] Private key format check', {
+      hasBackslashN: privateKeyPem.includes('\\n'),
+      startsWithBegin: formattedKey.startsWith('-----BEGIN'),
+      length: formattedKey.length,
+      preview: formattedKey.substring(0, 50)
+    });
+    
+    const privateKey = await importPKCS8(formattedKey, 'ES256');
     const jwt = await new SignJWT(authRequest)
       .setProtectedHeader({
         alg: 'ES256',

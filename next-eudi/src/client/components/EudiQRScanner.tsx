@@ -234,9 +234,21 @@ export function EudiQRScanner({
       
       <div className="text-center">
         {status === 'ready' && (
-          <p className="text-sm text-gray-600">
-            Scan with your EUDI Wallet to verify age {minAge}+
-          </p>
+          <>
+            <p className="text-sm text-gray-600 mb-2">
+              Scan with your EUDI Wallet to verify age {minAge}+
+            </p>
+            {sessionId && (
+              <a
+                href={`${typeof window !== 'undefined' ? window.location.origin : ''}${apiBaseUrl}/authorize?session_id=${sessionId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Direct link to authorization request
+              </a>
+            )}
+          </>
         )}
         
         {status === 'verifying' && (
