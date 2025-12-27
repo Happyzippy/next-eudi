@@ -13,29 +13,23 @@ export function createPresentationDefinition(minAge: number = 18): PresentationD
     purpose: `Verify user is at least ${minAge} years old`,
     input_descriptors: [
       {
-        id: 'eu.europa.ec.eudi.pid.1',
-        name: 'EUDI PID',
+        id: 'age_credential',
+        name: 'Age Credential',
         purpose: 'We need to verify your age',
-        format: {
-          'vc+sd-jwt': {
-            'alg': ['ES256', 'ES384', 'ES512', 'EdDSA']
-          }
-        },
         constraints: {
-          limit_disclosure: 'required',
           fields: [
             {
-              path: ['$.vct'],
+              // Look for age_over_18 in multiple possible locations
+              path: [
+                `$.age_over_${minAge}`,
+                `$.credentialSubject.age_over_${minAge}`,
+                `$.vc.credentialSubject.age_over_${minAge}`,
+                '$.age_over_18',
+                '$.credentialSubject.age_over_18',
+                '$.vc.credentialSubject.age_over_18'
+              ],
               filter: {
-                type: 'string',
-                const: 'eu.europa.ec.eudi.pid.1'
-              }
-            },
-            {
-              path: ['$.age_over_18'],
-              filter: {
-                type: 'boolean',
-                const: true
+                type: 'boolean'
               },
               intent_to_retain: false
             }
