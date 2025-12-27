@@ -9,7 +9,14 @@ export async function GET(request: NextRequest) {
   try {
     const sessionId = request.nextUrl.searchParams.get('session_id');
     
+    console.log('[AUTHORIZE] Request received', {
+      sessionId,
+      url: request.url,
+      headers: Object.fromEntries(request.headers.entries())
+    });
+    
     if (!sessionId) {
+      console.error('[AUTHORIZE] Missing session_id parameter');
       return NextResponse.json(
         { error: 'session_id parameter required' },
         { status: 400 }
@@ -19,6 +26,7 @@ export async function GET(request: NextRequest) {
     const session = await getSession(sessionId);
     
     if (!session) {
+      console.error('[AUTHORIZE] Session not found', { sessionId });
       return NextResponse.json(
         { error: 'Session not found or expired' },
         { status: 404 }
@@ -39,6 +47,11 @@ export async function GET(request: NextRequest) {
       state: sessionId
     };
     
+    console.log('[AUTHORIZE] Sending auth request', {
+      sessionId,
+      authRequest: JSON.stringify(authRequest, null, 2)
+    });
+    
     // Add CORS headers so wallet can fetch this
     return NextResponse.json(authRequest, {
       headers: {
@@ -48,6 +61,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
+    console.error('[AUTHORIZE] Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
