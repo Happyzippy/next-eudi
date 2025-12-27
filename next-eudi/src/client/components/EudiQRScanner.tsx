@@ -109,34 +109,12 @@ export function EudiQRScanner({
       // Generate authorization URL (OIDC4VP request)
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const callbackUrl = `${origin}${apiBaseUrl}/callback`;
+      const authUrl = `${origin}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
       
-      // Build authorization request to embed in QR code (request by value)
-      const authRequest = {
-        response_type: 'vp_token',
-        client_id: callbackUrl,
-        response_mode: 'direct_post',
-        response_uri: callbackUrl,
-        nonce: data.sessionId,
-        state: data.sessionId,
-        presentation_definition: {
-          id: 'age-verification',
-          input_descriptors: [{
-            id: 'any_credential',
-            constraints: {
-              fields: []
-            }
-          }]
-        }
-      };
-      
-      // Encode as URL parameters for openid4vp protocol
-      const params = new URLSearchParams();
-      Object.entries(authRequest).forEach(([key, value]) => {
-        params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
-      });
-      
-      // For EUDI wallets, use openid4vp:// protocol with request by value
-      const walletUrl = `openid4vp://?${params.toString()}`;
+      // Use request_uri approach with Lissi-compatible format:
+      // - client_id prefixed with "redirect_uri:"
+      // - request_uri_method=post parameter
+      const walletUrl = `openid4vp://?client_id=${encodeURIComponent(`redirect_uri:${callbackUrl}`)}&request_uri=${encodeURIComponent(authUrl)}&request_uri_method=post`;
       
       // Generate QR code
       if (canvasRef.current) {
