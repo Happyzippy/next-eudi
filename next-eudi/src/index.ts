@@ -11,7 +11,6 @@ export type { VerificationSession } from './server/session.js';
 
 // Storage adapters
 export { MemoryStorage } from './server/storage/memory.js';
-export { VercelKVStorage } from './server/storage/vercel-kv.js';
 export { UpstashStorage } from './server/storage/upstash.js';
 export type { SessionStorage } from './server/storage/interface.js';
 

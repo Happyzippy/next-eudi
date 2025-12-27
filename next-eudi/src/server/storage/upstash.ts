@@ -2,16 +2,17 @@
 
 import type { SessionStorage } from './interface.js';
 import type { VerificationSession } from '../session.js';
+import type { Redis } from '@upstash/redis';
 
 export class UpstashStorage implements SessionStorage {
-  private redis: any;
+  private redis: Redis;
   
-  constructor(redisInstance: any) {
+  constructor(redisInstance: Redis) {
     this.redis = redisInstance;
   }
 
   async get(sessionId: string): Promise<VerificationSession | null> {
-    const session = await this.redis.get(`session:${sessionId}`);
+    const session = await this.redis.get<VerificationSession>(`session:${sessionId}`);
     
     if (!session) {
       return null;

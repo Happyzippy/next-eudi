@@ -82,14 +82,3 @@ export async function updateSession(
 export async function deleteSession(sessionId: string): Promise<void> {
   await storage.delete(sessionId);
 }
-  sessions.set(sessionId, session);
-  
-  return session;
-}
-
-/**
- * Deletes a session
- */
-export function deleteSession(sessionId: string): boolean {
-  return sessions.delete(sessionId);
-}
