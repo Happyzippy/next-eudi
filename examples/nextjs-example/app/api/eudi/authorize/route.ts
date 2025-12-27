@@ -3,7 +3,6 @@
 
 import { getSession, createPresentationDefinition } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
-import { SignJWT, importPKCS8, exportJWK } from 'jose';
 import '../../../../lib/session-storage';
 
 export async function GET(request: NextRequest) {
@@ -35,41 +34,23 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Create presentation definition based on session requirements
-    const presentationDefinition = createPresentationDefinition(session.minAge);
-    
-    // Sign the authorization request as JWT
-    const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
-    const publicJwkString = process.env.VERIFIER_PUBLIC_JWK;
-    
-    if (!privateKeyPem) {
-      throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
-    }
-    if (!publicJwkString) {
-      throw new Error('VERIFIER_PUBLIC_JWK environment variable not set');
-    }
-    
-    // Handle both formats: with actual newlines or with literal \n
-    const formattedKey = privateKeyPem.includes('\\n') 
-      ? privateKeyPem.replace(/\\n/g, '\n')
-      : privateKeyPem;
-    
-    const privateKey = await importPKCS8(formattedKey, 'ES256');
-    const publicJwk = JSON.parse(publicJwkString);
-    
     // OIDC4VP authorization request for EUDI wallets
-    // Must be signed as JWT per RFC9101
+    // Using unsigned JWT (alg: none) like Lissi demo
     const callbackUrl = `${request.nextUrl.origin}/api/eudi/callback`;
     
+    const now = Math.floor(Date.now() / 1000);
     const authRequest = {
-      iss: `redirect_uri:${callbackUrl}`,
-      aud: 'https://self-issued.me/v2',
+      response_uri: callbackUrl,
+      client_id_scheme: 'redirect_uri',
+      iss: request.nextUrl.origin,
       response_type: 'vp_token',
+      nonce: sessionId,
       client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
-      response_uri: callbackUrl,
-      nonce: sessionId,
+      aud: 'https://self-issued.me/v2',
       state: sessionId,
+      exp: now + 3600, // 1 hour
+      iat: now,
       presentation_definition: {
         id: `age-verification-${session.minAge}`,
         input_descriptors: [{
@@ -88,40 +69,36 @@ export async function GET(request: NextRequest) {
         }]
       },
       client_metadata: {
-        jwks: {
-          keys: [publicJwk]
-        },
+        client_name: 'Next EUDI Verifier',
         vp_formats: {
           mso_mdoc: {
             alg: ['ES256', 'ES384', 'ES512']
           }
-        },
-        client_name: 'Next EUDI Verifier'
+        }
       }
     };
     
-    console.log('[AUTHORIZE] Signing auth request as JWT', {
+    console.log('[AUTHORIZE] Creating unsigned JWT', {
       sessionId,
-      publicJwk,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
-    const jwt = await new SignJWT(authRequest)
-      .setProtectedHeader({
-        alg: 'ES256',
-        typ: 'oauth-authz-req+jwt'
-      })
-      .sign(privateKey);
     
-    console.log('[AUTHORIZE] JWT signed successfully', {
+    // Create unsigned JWT (alg: none)
+    const header = { alg: 'none', typ: 'JWT' };
+    const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
+    const encodedPayload = Buffer.from(JSON.stringify(authRequest)).toString('base64url');
+    const jwt = `${encodedHeader}.${encodedPayload}.`;
+    
+    console.log('[AUTHORIZE] Unsigned JWT created', {
       jwtLength: jwt.length,
       jwtPreview: jwt.substring(0, 50) + '...'
     });
     
-    // Return signed JWT with proper content type
+    // Return unsigned JWT
     return new NextResponse(jwt, {
       status: 200,
       headers: {
-        'Content-Type': 'application/oauth-authz-req+jwt',
+        'Content-Type': 'application/jwt',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
