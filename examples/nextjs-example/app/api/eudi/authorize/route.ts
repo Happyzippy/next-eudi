@@ -36,15 +36,28 @@ export async function GET(request: NextRequest) {
     // Create presentation definition based on session requirements
     const presentationDefinition = createPresentationDefinition(session.minAge);
     
-    // OIDC4VP authorization request
+    // OIDC4VP authorization request with all required fields for EUDI wallets
     const authRequest = {
       client_id: 'next-eudi-verifier',
+      client_id_scheme: 'redirect_uri', // Required for EUDI wallets
       response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: `${request.nextUrl.origin}/api/eudi/callback`,
       nonce: sessionId,
       presentation_definition: presentationDefinition,
-      state: sessionId
+      state: sessionId,
+      client_metadata: {
+        vp_formats: {
+          'jwt_vp': {
+            alg: ['ES256', 'ES384', 'ES512', 'EdDSA']
+          },
+          'jwt_vc': {
+            alg: ['ES256', 'ES384', 'ES512', 'EdDSA']
+          }
+        },
+        client_name: 'Next EUDI Verifier',
+        logo_uri: `${request.nextUrl.origin}/logo.png`
+      }
     };
     
     console.log('[AUTHORIZE] Sending auth request', {
