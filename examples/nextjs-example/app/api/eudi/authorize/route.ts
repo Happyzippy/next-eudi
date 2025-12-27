@@ -40,8 +40,13 @@ export async function GET(request: NextRequest) {
     
     // Sign the authorization request as JWT
     const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
+    const publicJwkString = process.env.VERIFIER_PUBLIC_JWK;
+    
     if (!privateKeyPem) {
       throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
+    }
+    if (!publicJwkString) {
+      throw new Error('VERIFIER_PUBLIC_JWK environment variable not set');
     }
     
     // Handle both formats: with actual newlines or with literal \n
@@ -50,9 +55,7 @@ export async function GET(request: NextRequest) {
       : privateKeyPem;
     
     const privateKey = await importPKCS8(formattedKey, 'ES256');
-    
-    // Extract public key as JWK for wallet verification
-    const publicJwk = await exportJWK(privateKey);
+    const publicJwk = JSON.parse(publicJwkString);
     
     // OIDC4VP authorization request for EUDI wallets
     // Must be signed as JWT per RFC9101
