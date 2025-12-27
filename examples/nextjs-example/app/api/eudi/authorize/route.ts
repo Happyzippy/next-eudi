@@ -3,6 +3,7 @@
 
 import { getSession, createPresentationDefinition } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import { SignJWT, importPKCS8 } from 'jose';
 import '../../../../lib/session-storage';
 
 export async function GET(request: NextRequest) {
@@ -38,12 +39,16 @@ export async function GET(request: NextRequest) {
     const presentationDefinition = createPresentationDefinition(session.minAge);
     
     // OIDC4VP authorization request for EUDI wallets
-    // Using redirect_uri client_id_scheme (no signing required)
+    // Must be signed as JWT per RFC9101
+    const callbackUrl = `${request.nextUrl.origin}/api/eudi/callback`;
+    
     const authRequest = {
+      iss: `redirect_uri:${callbackUrl}`,
+      aud: 'https://self-issued.me/v2',
       response_type: 'vp_token',
-      client_id: `${request.nextUrl.origin}/api/eudi/callback`,
+      client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
-      response_uri: `${request.nextUrl.origin}/api/eudi/callback`,
+      response_uri: callbackUrl,
       nonce: sessionId,
       state: sessionId,
       presentation_definition: {
@@ -51,13 +56,13 @@ export async function GET(request: NextRequest) {
         input_descriptors: [{
           id: 'pid_credential',
           format: {
-            'mso_mdoc': {
+            mso_mdoc: {
               alg: ['ES256', 'ES384', 'ES512']
             }
           },
           constraints: {
             fields: [{
-              path: ['$[\'eu.europa.ec.eudi.pid.1\'][\'age_over_18\']'],
+              path: [`$['eu.europa.ec.eudi.pid.1']['age_over_${session.minAge}']`],
               intent_to_retain: false
             }]
           }
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
       },
       client_metadata: {
         vp_formats: {
-          'mso_mdoc': {
+          mso_mdoc: {
             alg: ['ES256', 'ES384', 'ES512']
           }
         },
@@ -73,14 +78,35 @@ export async function GET(request: NextRequest) {
       }
     };
     
-    console.log('[AUTHORIZE] Sending auth request', {
+    console.log('[AUTHORIZE] Signing auth request as JWT', {
       sessionId,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
     
-    // Add CORS headers so wallet can fetch this
-    return NextResponse.json(authRequest, {
+    // Sign the authorization request as JWT
+    const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
+    if (!privateKeyPem) {
+      throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
+    }
+    
+    const privateKey = await importPKCS8(privateKeyPem, 'ES256');
+    const jwt = await new SignJWT(authRequest)
+      .setProtectedHeader({
+        alg: 'ES256',
+        typ: 'oauth-authz-req+jwt'
+      })
+      .sign(privateKey);
+    
+    console.log('[AUTHORIZE] JWT signed successfully', {
+      jwtLength: jwt.length,
+      jwtPreview: jwt.substring(0, 50) + '...'
+    });
+    
+    // Return signed JWT with proper content type
+    return new NextResponse(jwt, {
+      status: 200,
       headers: {
+        'Content-Type': 'application/oauth-authz-req+jwt',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
