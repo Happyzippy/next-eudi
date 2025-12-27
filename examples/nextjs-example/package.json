@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:lib && next build",
+    "build": "npm run build:lib && npm install && next build",
     "build:lib": "cd ../../next-eudi && npm run build",
     "start": "next start",
     "lint": "eslint"
