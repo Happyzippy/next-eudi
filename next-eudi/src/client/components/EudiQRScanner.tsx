@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
 
 interface EudiQRScannerProps {
@@ -65,7 +65,9 @@ export function EudiQRScanner({
   className = '',
   size = 256
 }: EudiQRScannerProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'generating' | 'ready' | 'scanning' | 'verifying' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
