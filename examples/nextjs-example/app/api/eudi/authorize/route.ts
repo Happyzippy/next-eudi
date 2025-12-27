@@ -3,7 +3,7 @@
 
 import { getSession, createPresentationDefinition } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
-import { SignJWT, importPKCS8 } from 'jose';
+import { SignJWT, importPKCS8, exportJWK } from 'jose';
 import '../../../../lib/session-storage';
 
 export async function GET(request: NextRequest) {
@@ -38,6 +38,22 @@ export async function GET(request: NextRequest) {
     // Create presentation definition based on session requirements
     const presentationDefinition = createPresentationDefinition(session.minAge);
     
+    // Sign the authorization request as JWT
+    const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
+    if (!privateKeyPem) {
+      throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
+    }
+    
+    // Handle both formats: with actual newlines or with literal \n
+    const formattedKey = privateKeyPem.includes('\\n') 
+      ? privateKeyPem.replace(/\\n/g, '\n')
+      : privateKeyPem;
+    
+    const privateKey = await importPKCS8(formattedKey, 'ES256');
+    
+    // Extract public key as JWK for wallet verification
+    const publicJwk = await exportJWK(privateKey);
+    
     // OIDC4VP authorization request for EUDI wallets
     // Must be signed as JWT per RFC9101
     const callbackUrl = `${request.nextUrl.origin}/api/eudi/callback`;
@@ -69,6 +85,9 @@ export async function GET(request: NextRequest) {
         }]
       },
       client_metadata: {
+        jwks: {
+          keys: [publicJwk]
+        },
         vp_formats: {
           mso_mdoc: {
             alg: ['ES256', 'ES384', 'ES512']
@@ -80,28 +99,9 @@ export async function GET(request: NextRequest) {
     
     console.log('[AUTHORIZE] Signing auth request as JWT', {
       sessionId,
+      publicJwk,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
-    
-    // Sign the authorization request as JWT
-    const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
-    if (!privateKeyPem) {
-      throw new Error('VERIFIER_PRIVATE_KEY environment variable not set');
-    }
-    
-    // Handle both formats: with actual newlines or with literal \n
-    const formattedKey = privateKeyPem.includes('\\n') 
-      ? privateKeyPem.replace(/\\n/g, '\n')
-      : privateKeyPem;
-    
-    console.log('[AUTHORIZE] Private key format check', {
-      hasBackslashN: privateKeyPem.includes('\\n'),
-      startsWithBegin: formattedKey.startsWith('-----BEGIN'),
-      length: formattedKey.length,
-      preview: formattedKey.substring(0, 50)
-    });
-    
-    const privateKey = await importPKCS8(formattedKey, 'ES256');
     const jwt = await new SignJWT(authRequest)
       .setProtectedHeader({
         alg: 'ES256',
