@@ -1,7 +1,0 @@
-{
-  "buildCommand": "npm install && cd examples/nextjs-example && npm run build",
-  "devCommand": "cd examples/nextjs-example && npm run dev",
-  "installCommand": "npm install",
-  "framework": null,
-  "outputDirectory": "examples/nextjs-example/.next"
-}
