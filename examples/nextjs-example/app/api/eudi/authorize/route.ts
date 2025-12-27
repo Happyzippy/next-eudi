@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
     console.log('[AUTHORIZE] Request received', {
       sessionId,
       url: request.url,
-      headers: Object.fromEntries(request.headers.entries())
+      headers: Object.fromEntries(request.headers.entries()),
+      userAgent: request.headers.get('user-agent')
     });
     
     if (!sessionId) {
@@ -36,27 +37,39 @@ export async function GET(request: NextRequest) {
     // Create presentation definition based on session requirements
     const presentationDefinition = createPresentationDefinition(session.minAge);
     
-    // OIDC4VP authorization request with all required fields for EUDI wallets
+    // OIDC4VP authorization request for EUDI wallets
+    // Using redirect_uri client_id_scheme (no signing required)
     const authRequest = {
-      client_id: 'next-eudi-verifier',
-      client_id_scheme: 'redirect_uri', // Required for EUDI wallets
       response_type: 'vp_token',
+      client_id: `${request.nextUrl.origin}/api/eudi/callback`,
       response_mode: 'direct_post',
       response_uri: `${request.nextUrl.origin}/api/eudi/callback`,
       nonce: sessionId,
-      presentation_definition: presentationDefinition,
       state: sessionId,
+      presentation_definition: {
+        id: `age-verification-${session.minAge}`,
+        input_descriptors: [{
+          id: 'pid_credential',
+          format: {
+            'mso_mdoc': {
+              alg: ['ES256', 'ES384', 'ES512']
+            }
+          },
+          constraints: {
+            fields: [{
+              path: ['$[\'eu.europa.ec.eudi.pid.1\'][\'age_over_18\']'],
+              intent_to_retain: false
+            }]
+          }
+        }]
+      },
       client_metadata: {
         vp_formats: {
-          'jwt_vp': {
-            alg: ['ES256', 'ES384', 'ES512', 'EdDSA']
-          },
-          'jwt_vc': {
-            alg: ['ES256', 'ES384', 'ES512', 'EdDSA']
+          'mso_mdoc': {
+            alg: ['ES256', 'ES384', 'ES512']
           }
         },
-        client_name: 'Next EUDI Verifier',
-        logo_uri: `${request.nextUrl.origin}/logo.png`
+        client_name: 'Next EUDI Verifier'
       }
     };
     

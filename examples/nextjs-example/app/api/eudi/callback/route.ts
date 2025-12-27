@@ -5,8 +5,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import '../../../../lib/session-storage';
 
 export async function POST(request: NextRequest) {
+  console.log('[CALLBACK] Request received', {
+    url: request.url,
+    headers: Object.fromEntries(request.headers.entries()),
+    method: request.method
+  });
+  
   try {
     const body = await request.json();
+    
+    console.log('[CALLBACK] Body received', {
+      body: JSON.stringify(body, null, 2),
+      hasVpToken: !!body.vp_token,
+      hasState: !!body.state
+    });
+    
     const { vp_token, state } = body;
     
     if (!vp_token || !state) {
