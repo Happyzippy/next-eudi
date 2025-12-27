@@ -107,8 +107,9 @@ export function EudiQRScanner({
       // Generate authorization URL (OIDC4VP request)
       const authUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
       
-      // For EUDI wallets, we use openid4vp:// protocol
-      const walletUrl = `openid4vp://?request_uri=${encodeURIComponent(authUrl)}`;
+      // For EUDI wallets, we use openid4vp:// protocol with client_id_scheme
+      // This tells the wallet this is an OIDC4VP verifier request
+      const walletUrl = `openid4vp://?client_id=next-eudi-verifier&request_uri=${encodeURIComponent(authUrl)}`;
       
       // Generate QR code
       if (canvasRef.current) {
