@@ -13,27 +13,11 @@ export function createPresentationDefinition(minAge: number = 18): PresentationD
     purpose: `Verify user is at least ${minAge} years old`,
     input_descriptors: [
       {
-        id: 'age_credential',
-        name: 'Age Credential',
-        purpose: 'We need to verify your age',
+        id: 'any_credential',
+        name: 'Any Verifiable Credential',
+        purpose: 'We need to verify your identity',
         constraints: {
-          fields: [
-            {
-              // Look for age_over_18 in multiple possible locations
-              path: [
-                `$.age_over_${minAge}`,
-                `$.credentialSubject.age_over_${minAge}`,
-                `$.vc.credentialSubject.age_over_${minAge}`,
-                '$.age_over_18',
-                '$.credentialSubject.age_over_18',
-                '$.vc.credentialSubject.age_over_18'
-              ],
-              filter: {
-                type: 'boolean'
-              },
-              intent_to_retain: false
-            }
-          ]
+          fields: []
         }
       }
     ]
