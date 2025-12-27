@@ -8,7 +8,15 @@ export interface PresentationDefinition {
 
 export interface InputDescriptor {
   id: string;
+  name?: string;
+  purpose?: string;
+  format?: {
+    [key: string]: {
+      alg?: string[];
+    };
+  };
   constraints: {
+    limit_disclosure?: string;
     fields: Field[];
   };
 }
@@ -19,7 +27,9 @@ export interface Field {
     type: string;
     minimum?: number;
     maximum?: number;
+    const?: string | boolean | number;
   };
+  intent_to_retain?: boolean;
 }
 
 export interface VerificationResult {
