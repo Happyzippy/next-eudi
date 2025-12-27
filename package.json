@@ -8,6 +8,9 @@
       "examples/*"
     ],
     "nohoist": [
+      "**/lightningcss",
+      "**/lightningcss/**",
+      "**/@tailwindcss/**",
       "**/examples/**"
     ]
   }
