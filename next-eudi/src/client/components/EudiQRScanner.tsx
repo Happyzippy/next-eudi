@@ -107,11 +107,36 @@ export function EudiQRScanner({
       onSessionCreated?.(data.sessionId);
       
       // Generate authorization URL (OIDC4VP request)
-      const authUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const callbackUrl = `${origin}${apiBaseUrl}/callback`;
       
-      // For EUDI wallets, we use openid4vp:// protocol with client_id_scheme
-      // This tells the wallet this is an OIDC4VP verifier request
-      const walletUrl = `openid4vp://?client_id=next-eudi-verifier&request_uri=${encodeURIComponent(authUrl)}`;
+      // Build authorization request to embed in QR code (request by value)
+      const authRequest = {
+        response_type: 'vp_token',
+        client_id: callbackUrl,
+        response_mode: 'direct_post',
+        response_uri: callbackUrl,
+        nonce: data.sessionId,
+        state: data.sessionId,
+        presentation_definition: {
+          id: 'age-verification',
+          input_descriptors: [{
+            id: 'any_credential',
+            constraints: {
+              fields: []
+            }
+          }]
+        }
+      };
+      
+      // Encode as URL parameters for openid4vp protocol
+      const params = new URLSearchParams();
+      Object.entries(authRequest).forEach(([key, value]) => {
+        params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+      });
+      
+      // For EUDI wallets, use openid4vp:// protocol with request by value
+      const walletUrl = `openid4vp://?${params.toString()}`;
       
       // Generate QR code
       if (canvasRef.current) {
