@@ -2,12 +2,11 @@
 
 import type { SessionStorage } from './interface.js';
 import type { VerificationSession } from '../session.js';
-import type { RedisClientType } from 'redis';
 
 export class RedisStorage implements SessionStorage {
-  private redis: RedisClientType;
+  private redis: any;
   
-  constructor(redisInstance: RedisClientType) {
+  constructor(redisInstance: any) {
     this.redis = redisInstance;
   }
 
