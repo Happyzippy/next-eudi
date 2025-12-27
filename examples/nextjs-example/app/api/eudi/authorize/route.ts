@@ -51,21 +51,17 @@ export async function GET(request: NextRequest) {
       state: sessionId,
       exp: now + 3600, // 1 hour
       iat: now,
-      presentation_definition: {
-        id: `age-verification-${session.minAge}`,
-        input_descriptors: [{
+      dcql_query: {
+        credentials: [{
+          format: 'mso_mdoc',
           id: 'pid_credential',
-          format: {
-            mso_mdoc: {
-              alg: ['ES256', 'ES384', 'ES512']
-            }
+          meta: {
+            doctype_value: 'eu.europa.ec.eudi.pid.1'
           },
-          constraints: {
-            fields: [{
-              path: [`$['eu.europa.ec.eudi.pid.1']['age_over_${session.minAge}']`],
-              intent_to_retain: false
-            }]
-          }
+          claims: [{
+            id: `age_over_${session.minAge}`,
+            path: [`age_over_${session.minAge}`]
+          }]
         }]
       },
       client_metadata: {
