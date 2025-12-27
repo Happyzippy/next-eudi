@@ -5,16 +5,35 @@ Date: 2025-12-27
 This document explains the intended structure of the project and answers three design questions: how to make the addon easy to add to a project, how to minimize real-world deployment cost, and how to run serverless while caching trust lists.
 
 ## Structure
-The `docs/plan.md` describes the plan and will be accompanied by a short example app in `examples/nextjs-example`. Core code will live under `src/` and be split into `server/`, `client/`, `middleware/`, and `next-auth/` areas. Public API entrypoint will be `src/index.ts` exporting server helpers and client hooks.
+The repo uses a monorepo-lite structure with `/next-eudi` (library package) and `/examples` (demo apps) as siblings. The root provides workspace orchestration and shared docs.
 
-Core modules:
-- `src/server/verifier.ts` — Verifiable Presentation verification and convenience wrappers (e.g., `verifyAgeWithEudi`).
-- `src/server/pairwise.ts` — Deterministic pairwise identifier derivation helpers.
-- `src/server/presentation.ts` — Presentation Definition creation helpers.
-- `src/middleware/eudiMiddleware.ts` — Factory for Next.js middleware to protect routes.
-- `src/client/EudiProvider.tsx` — Provider to configure endpoints, TTLs and hooks.
-- `src/client/hooks/useEudiAge.ts` — Hook to request and track age verification.
-- `src/next-auth/adapter.ts` — Helpers to integrate with NextAuth callbacks.
+```
+c:\Users\emtyg\dev\login\
+├── next-eudi/           # Library package (publishable to npm)
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── src/
+│   ├── dist/
+│   └── README.md
+├── examples/
+│   └── nextjs-example/  # Demo Next.js app
+├── docs/                # Shared documentation
+└── package.json         # Root workspace config
+```
+
+Core library modules (in `next-eudi/src/`):
+- `server/verifier.ts` — Verifiable Presentation verification and convenience wrappers (e.g., `verifyAgeWithEudi`).
+- `server/pairwise.ts` — Deterministic pairwise identifier derivation helpers.
+- `server/presentation.ts` — Presentation Definition creation helpers.
+- `server/cache.ts` — TrustCache interface and adapters (InMemory, EdgeKV, CDN).
+- `middleware/eudiMiddleware.ts` — Factory for Next.js middleware to protect routes.
+- `client/EudiProvider.tsx` — Provider to configure endpoints, TTLs and hooks.
+- `client/hooks/useEudiAge.ts` — Hook to request and track age verification.
+- `client/hooks/useEudiAuth.ts` — Hook for general EUDI authentication state.
+- `client/components/EudiVerifyButton.tsx` — Pre-built verification button component.
+- `next-auth/adapter.ts` — Helpers to integrate with NextAuth callbacks.
+- `types/index.ts` — TypeScript type definitions.
+- `index.ts` — Main export entrypoint.
 
 ## 1) How to make it easy to add this login to a project
 

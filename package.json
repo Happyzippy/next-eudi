@@ -1,0 +1,14 @@
+{
+  "name": "login-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "next-eudi",
+      "examples/*"
+    ],
+    "nohoist": [
+      "**/examples/**"
+    ]
+  }
+}

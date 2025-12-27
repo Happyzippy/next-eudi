@@ -1,0 +1,11 @@
+# Exclude development files from npm install
+src/
+tests/
+node_modules/
+*.tgz
+.git/
+.gitignore
+tsconfig.json
+eslint.config.mts
+.vscode/
+*.log
