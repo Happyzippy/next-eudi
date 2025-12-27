@@ -2,6 +2,8 @@
 
 import { getSession, updateSession, verifyAgeWithEudi } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import '../../../../lib/session-storage';
+import '../../../../lib/session-config.js'; // Initialize storage
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
     
     const sessionId = state;
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     
     if (!session) {
       return NextResponse.json(
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Update status to scanned
-    updateSession(sessionId, { status: 'scanned' });
+    await updateSession(sessionId, { status: 'scanned' });
     
     // Verify the presentation
     const result = await verifyAgeWithEudi(vp_token, session.minAge, {
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
         mod.verifyPresentation(vp_token, { skipSignatureVerification: true })
       );
       
-      updateSession(sessionId, {
+      await updateSession(sessionId, {
         status: 'completed',
         result: {
           isOldEnough: true,
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
       });
     } else {
-      updateSession(sessionId, {
+      await updateSession(sessionId, {
         status: 'failed',
         error: 'Age verification failed'
       });

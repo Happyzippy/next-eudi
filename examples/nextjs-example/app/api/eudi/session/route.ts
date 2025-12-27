@@ -2,13 +2,15 @@
 
 import { createSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import '../../../../lib/session-storage';
+import '../../../../lib/session-config.js'; // Initialize storage
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { minAge = 18 } = body;
     
-    const session = createSession(minAge);
+    const session = await createSession(minAge);
     
     return NextResponse.json({
       sessionId: session.sessionId,

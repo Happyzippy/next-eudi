@@ -6,8 +6,14 @@ export { createPairwiseId } from './server/pairwise.js';
 export { createPresentationDefinition } from './server/presentation.js';
 export type { TrustCache } from './server/cache.js';
 export { InMemoryAdapter } from './server/cache.js';
-export { createSession, getSession, updateSession, deleteSession } from './server/session.js';
+export { createSession, getSession, updateSession, deleteSession, configureSessionStorage } from './server/session.js';
 export type { VerificationSession } from './server/session.js';
+
+// Storage adapters
+export { MemoryStorage } from './server/storage/memory.js';
+export { VercelKVStorage } from './server/storage/vercel-kv.js';
+export { UpstashStorage } from './server/storage/upstash.js';
+export type { SessionStorage } from './server/storage/interface.js';
 
 // Client-side exports
 export { EudiProvider } from './client/EudiProvider.js';

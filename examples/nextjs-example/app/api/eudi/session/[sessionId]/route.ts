@@ -2,6 +2,7 @@
 
 import { getSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import '../../../../../lib/session-storage';
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     
     if (!session) {
       return NextResponse.json(

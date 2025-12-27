@@ -3,6 +3,8 @@
 
 import { getSession, createPresentationDefinition } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import '../../../../lib/session-storage';
+import '../../../../lib/session-config.js'; // Initialize storage
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     
     if (!session) {
       return NextResponse.json(
