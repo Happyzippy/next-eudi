@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/oauth-authz-req+jwt',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
       }
     });
@@ -133,13 +133,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Handle POST requests (Lissi wallet uses request_uri_method=post)
+export async function POST(request: NextRequest) {
+  return GET(request);
+}
+
 // Handle preflight requests
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     }
   });
