@@ -92,16 +92,14 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
 
     const authRequest = {
       response_uri: callbackUrl,
-      client_id_scheme: 'redirect_uri',
       iss: request.nextUrl.origin,
       response_type: 'vp_token',
       nonce: nonce,
-      wallet_nonce: nonce, // EUDI Wallet expects this specific claim
+      wallet_nonce: nonce, // Required by OpenID4VP when wallet_nonce is in POST
       client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
-      redirect_uri: redirectUrl,
       exp: now + 3600, // 1 hour
       iat: now,
       dcql_query: {
@@ -154,7 +152,7 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
         jwks: {
           keys: [jwk]
         },
-        vp_formats: {
+        vp_formats_supported: {
           'vc+sd-jwt': {
             'sd-jwt_alg_values': ['ES256'],
             'kb-jwt_alg_values': ['ES256']
