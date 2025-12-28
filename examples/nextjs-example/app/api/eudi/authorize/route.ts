@@ -56,11 +56,6 @@ export async function GET(request: NextRequest) {
         credentials: [{
           format: 'dc+sd-jwt',
           id: 'sd-jwt-pid',
-          meta: {
-            vct_values: [
-              'https://example.com/credentials/pid'
-            ]
-          },
           claims: [{
             "id": "given_name",
             "path": [
