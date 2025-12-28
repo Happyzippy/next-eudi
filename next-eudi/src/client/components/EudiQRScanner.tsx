@@ -109,13 +109,21 @@ export function EudiQRScanner({
       // Generate authorization URL (OIDC4VP request)
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const callbackUrl = `${origin}${apiBaseUrl}/callback`;
-      const authUrl = `${origin}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
-      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
       
-      // Use request_uri approach with x509_san_dns for HAIP compliance:
-      // - client_id with x509_san_dns: prefix (required for signed JWTs)
-      // - request_uri_method=post parameter
-      const walletUrl = `openid4vp://?client_id=${encodeURIComponent(`x509_san_dns:${hostname}`)}&request_uri=${encodeURIComponent(authUrl)}&request_uri_method=post`;
+      // Danish AVP: Direct parameters in URL (no request_uri)
+      const params = new URLSearchParams({
+        response_type: 'vp_token',
+        response_mode: 'direct_post',
+        client_id: `redirect_uri:${callbackUrl}`,
+        response_uri: callbackUrl,
+        nonce: data.sessionId, // Use session ID as nonce for now
+        state: data.sessionId
+      });
+      
+      // Note: dcql_query will be added by authorize endpoint when implementing AVP
+      // For now, keeping request_uri approach for compatibility
+      const authUrl = `${origin}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
+      const walletUrl = `openid4vp://?client_id=${encodeURIComponent(`redirect_uri:${callbackUrl}`)}&request_uri=${encodeURIComponent(authUrl)}&request_uri_method=post`;
       
       // Generate QR code
       if (canvasRef.current) {

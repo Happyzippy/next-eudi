@@ -129,25 +129,13 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
     
     console.log('[AUTHORIZE] Using nonce', { nonce, walletNonce });
 
-    // Fetch certificate chain for x509_san_dns scheme
-    const hostname = new URL(request.nextUrl.origin).hostname;
-    let x5c: string[] | undefined;
-    
-    try {
-      x5c = await getCertificateChain(hostname);
-      console.log('[AUTHORIZE] Certificate chain fetched', { certCount: x5c.length });
-    } catch (error) {
-      console.warn('[AUTHORIZE] Failed to fetch certificate chain, proceeding without x5c', error);
-      // Continue without x5c - some wallets may accept it for testing
-    }
-
     const authRequest = {
       response_uri: callbackUrl,
       iss: request.nextUrl.origin,
       response_type: 'vp_token',
       nonce: nonce,
       wallet_nonce: nonce, // Required by OpenID4VP when wallet_nonce is in POST
-      client_id: `x509_san_dns:${new URL(request.nextUrl.origin).hostname}`,
+      client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
@@ -216,36 +204,16 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
       }
     };
     
-    console.log('[AUTHORIZE] Creating signed JWT (ES256)', {
+    console.log('[AUTHORIZE] Creating unsigned request object', {
       sessionId,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
     
-    // Create signed JWT with x509_san_dns scheme
-    const header: any = { 
-      alg: 'ES256', 
-      typ: 'oauth-authz-req+jwt'
-    };
-    
-    // Add x5c (certificate chain) if available
-    if (x5c && x5c.length > 0) {
-      header.x5c = x5c;
-    }
-    
-    const jwt = await new jose.SignJWT(authRequest)
-      .setProtectedHeader(header)
-      .sign(privateKey);
-    
-    console.log('[AUTHORIZE] Signed JWT created', {
-      jwtLength: jwt.length,
-      jwtPreview: jwt.substring(0, 50) + '...'
-    });
-    
-    // Return signed JWT
-    return new NextResponse(jwt, {
+    // Return unsigned request as plain JSON (redirect_uri scheme doesn't support signing)
+    return new NextResponse(JSON.stringify(authRequest), {
       status: 200,
       headers: {
-        'Content-Type': 'application/oauth-authz-req+jwt',
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
