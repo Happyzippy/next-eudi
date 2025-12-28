@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     // OIDC4VP authorization request for EUDI wallets
     // Using unsigned JWT (alg: none) like Lissi demo
     const callbackUrl = `${request.nextUrl.origin}/api/eudi/callback`;
+    const redirectUrl = `${request.nextUrl.origin}/success`; // URL for user redirection after success
     
     const now = Math.floor(Date.now() / 1000);
     const authRequest = {
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
-      redirect_uri: callbackUrl,
+      redirect_uri: redirectUrl,
       exp: now + 3600, // 1 hour
       iat: now,
       dcql_query: {
@@ -96,7 +97,9 @@ export async function GET(request: NextRequest) {
       client_metadata: {
         client_name: 'Next EUDI Verifier',
         client_uri: request.nextUrl.origin,
-        redirect_uris: [callbackUrl],
+        logo_uri: 'https://ux-backend-demo.lissi.io/images/partnerbankLogo.png', // Using Lissi logo for testing
+        policy_uri: 'https://docs.lissi.id/legal/lissi-id-wallet-datenschutzhinweise-privacy-policy',
+        redirect_uris: [redirectUrl],
         vp_formats: {
           'vc+sd-jwt': {
             'sd-jwt_alg_values': ['ES256'],
