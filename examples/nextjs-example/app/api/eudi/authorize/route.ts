@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
     const authRequest = {
       response_uri: callbackUrl,
       client_id_scheme: 'redirect_uri',
-      iss: callbackUrl,
+      iss: request.nextUrl.origin,
       response_type: 'vp_token',
       nonce: sessionId,
-      client_id: callbackUrl,
+      client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
@@ -73,6 +73,22 @@ export async function GET(request: NextRequest) {
             {
               "id": "birthdate",
               "path": ["birthdate"]
+            },
+            {
+              "id": "address-street_address",
+              "path": ["address", "street_address"]
+            },
+            {
+              "id": "address-locality",
+              "path": ["address", "locality"]
+            },
+            {
+              "id": "address-postal_code",
+              "path": ["address", "postal_code"]
+            },
+            {
+              "id": "address-country",
+              "path": ["address", "country"]
             }
           ]
         }]
