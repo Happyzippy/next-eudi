@@ -4,6 +4,7 @@
 import { getSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import * as jose from 'jose';
 import '../../../../lib/session-storage';
 
 export async function GET(request: NextRequest) {
@@ -36,9 +37,25 @@ export async function GET(request: NextRequest) {
     }
     
     // OIDC4VP authorization request for EUDI wallets
-    // Using unsigned JWT (alg: none) like Lissi demo
+    // EUDI Wallet requires signed JWT (ES256) - HAIP Profile
     const callbackUrl = `${request.nextUrl.origin}/api/eudi/callback`;
     const redirectUrl = `${request.nextUrl.origin}/success`; // URL for user redirection after success
+    
+    // Use persistent keys from environment variables
+    // This ensures the key ID (kid) remains consistent
+    const privateKeyPem = process.env.VERIFIER_PRIVATE_KEY;
+    const publicJwkStr = process.env.VERIFIER_PUBLIC_JWK;
+
+    if (!privateKeyPem || !publicJwkStr) {
+      console.error('Missing VERIFIER_PRIVATE_KEY or VERIFIER_PUBLIC_JWK');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing signing keys' },
+        { status: 500 }
+      );
+    }
+
+    const privateKey = await jose.importPKCS8(privateKeyPem, 'ES256');
+    const jwk = JSON.parse(publicJwkStr);
     
     const now = Math.floor(Date.now() / 1000);
     const nonce = crypto.randomBytes(16).toString('base64url');
@@ -100,9 +117,12 @@ export async function GET(request: NextRequest) {
       client_metadata: {
         client_name: 'Next EUDI Verifier',
         client_uri: request.nextUrl.origin,
-        logo_uri: 'https://ux-backend-demo.lissi.io/images/partnerbankLogo.png', // Using Lissi logo for testing
+        logo_uri: 'https://ux-backend-demo.lissi.io/images/partnerbankLogo.png',
         policy_uri: 'https://docs.lissi.id/legal/lissi-id-wallet-datenschutzhinweise-privacy-policy',
         redirect_uris: [redirectUrl],
+        jwks: {
+          keys: [jwk]
+        },
         vp_formats: {
           'vc+sd-jwt': {
             'sd-jwt_alg_values': ['ES256'],
@@ -116,27 +136,26 @@ export async function GET(request: NextRequest) {
       }
     };
     
-    console.log('[AUTHORIZE] Creating unsigned JWT', {
+    console.log('[AUTHORIZE] Creating signed JWT (ES256)', {
       sessionId,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
     
-    // Create unsigned JWT (alg: none)
-    const header = { alg: 'none', typ: 'JWT' };
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const encodedPayload = Buffer.from(JSON.stringify(authRequest)).toString('base64url');
-    const jwt = `${encodedHeader}.${encodedPayload}.`;
+    // Create signed JWT
+    const jwt = await new jose.SignJWT(authRequest)
+      .setProtectedHeader({ alg: 'ES256', typ: 'oauth-authz-req+jwt' })
+      .sign(privateKey);
     
-    console.log('[AUTHORIZE] Unsigned JWT created', {
+    console.log('[AUTHORIZE] Signed JWT created', {
       jwtLength: jwt.length,
       jwtPreview: jwt.substring(0, 50) + '...'
     });
     
-    // Return unsigned JWT
+    // Return signed JWT
     return new NextResponse(jwt, {
       status: 200,
       headers: {
-        'Content-Type': 'application/jwt',
+        'Content-Type': 'application/oauth-authz-req+jwt',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
