@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
     });
     
     // Create unsigned JWT (alg: none)
-    const header = { alg: 'none', typ: 'oauth-authz-req+jwt' };
+    const header = { alg: 'none', typ: 'JWT' };
     const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
     const encodedPayload = Buffer.from(JSON.stringify(authRequest)).toString('base64url');
     const jwt = `${encodedHeader}.${encodedPayload}.`;
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(jwt, {
       status: 200,
       headers: {
-        'Content-Type': 'application/oauth-authz-req+jwt',
+        'Content-Type': 'application/jwt',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
