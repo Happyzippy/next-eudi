@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
     const authRequest = {
       response_uri: callbackUrl,
       client_id_scheme: 'redirect_uri',
-      iss: request.nextUrl.origin,
+      iss: callbackUrl,
       response_type: 'vp_token',
       nonce: sessionId,
-      client_id: `redirect_uri:${callbackUrl}`,
+      client_id: callbackUrl,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
