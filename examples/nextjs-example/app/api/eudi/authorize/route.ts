@@ -61,12 +61,20 @@ export async function GET(request: NextRequest) {
               'https://pidissuer.demo.connector.lissi.io/pid'
             ]
           },
-          claims: [{
-            "id": "given_name",
-            "path": [
-              "given_name"
-            ]
-          }]
+          claims: [
+            {
+              "id": "given_name",
+              "path": ["given_name"]
+            },
+            {
+              "id": "family_name",
+              "path": ["family_name"]
+            },
+            {
+              "id": "birthdate",
+              "path": ["birthdate"]
+            }
+          ]
         }]
       },
       client_metadata: {
@@ -81,9 +89,6 @@ export async function GET(request: NextRequest) {
           'dc+sd-jwt': {
             'sd-jwt_alg_values': ['ES256'],
             'kb-jwt_alg_values': ['ES256']
-          },
-          mso_mdoc: {
-            alg: ['ES256', 'ES384', 'ES512']
           }
         }
       }
