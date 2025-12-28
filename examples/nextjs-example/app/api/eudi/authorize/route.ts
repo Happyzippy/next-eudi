@@ -1,7 +1,7 @@
 // API route for OIDC4VP authorization endpoint
 // This is what the wallet will call to get the presentation definition
 
-import { getSession, createPresentationDefinition } from '@emtyg/next-eudi';
+import { getSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
 import '../../../../lib/session-storage';
 
@@ -62,8 +62,10 @@ export async function GET(request: NextRequest) {
             ]
           },
           claims: [{
-            id: `age_over_${session.minAge}`,
-            path: [`age_over_${session.minAge}`]
+            "id": "given_name",
+            "path": [
+              "given_name"
+            ]
           }]
         }]
       },
