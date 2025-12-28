@@ -96,7 +96,7 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
       response_type: 'vp_token',
       nonce: nonce,
       wallet_nonce: nonce, // Required by OpenID4VP when wallet_nonce is in POST
-      client_id: `redirect_uri:${callbackUrl}`,
+      client_id: `x509_san_dns:${new URL(request.nextUrl.origin).hostname}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
       state: sessionId,
@@ -170,9 +170,15 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
       authRequest: JSON.stringify(authRequest, null, 2)
     });
     
-    // Create signed JWT
+    // Create signed JWT with x509_san_dns scheme
+    // Note: In production, you'd need to add x5c header with your certificate chain
+    // For now, using self-signed approach - may need proper cert in production
     const jwt = await new jose.SignJWT(authRequest)
-      .setProtectedHeader({ alg: 'ES256', typ: 'oauth-authz-req+jwt' })
+      .setProtectedHeader({ 
+        alg: 'ES256', 
+        typ: 'oauth-authz-req+jwt'
+        // x5c: ["<base64-encoded-cert>", "<base64-encoded-ca-cert>"] // Add in production
+      })
       .sign(privateKey);
     
     console.log('[AUTHORIZE] Signed JWT created', {
