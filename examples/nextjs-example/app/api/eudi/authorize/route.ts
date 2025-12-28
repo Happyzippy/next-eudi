@@ -85,14 +85,18 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
     
     const now = Math.floor(Date.now() / 1000);
     // Use wallet_nonce if provided (from POST body), otherwise generate one
+    // IMPORTANT: The wallet expects the nonce in the JWT to match the wallet_nonce sent in the POST body
     const nonce = walletNonce || crypto.randomBytes(16).toString('base64url');
     
+    console.log('[AUTHORIZE] Using nonce', { nonce, walletNonce });
+
     const authRequest = {
       response_uri: callbackUrl,
       client_id_scheme: 'redirect_uri',
       iss: request.nextUrl.origin,
       response_type: 'vp_token',
       nonce: nonce,
+      wallet_nonce: nonce, // EUDI Wallet expects this specific claim
       client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
