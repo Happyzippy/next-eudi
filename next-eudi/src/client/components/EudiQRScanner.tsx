@@ -110,11 +110,12 @@ export function EudiQRScanner({
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const callbackUrl = `${origin}${apiBaseUrl}/callback`;
       const authUrl = `${origin}${apiBaseUrl}/authorize?session_id=${data.sessionId}`;
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
       
-      // Use request_uri approach with Lissi-compatible format:
-      // - client_id prefixed with "redirect_uri:"
+      // Use request_uri approach with x509_san_dns for HAIP compliance:
+      // - client_id with x509_san_dns: prefix (required for signed JWTs)
       // - request_uri_method=post parameter
-      const walletUrl = `openid4vp://?client_id=${encodeURIComponent(`redirect_uri:${callbackUrl}`)}&request_uri=${encodeURIComponent(authUrl)}&request_uri_method=post`;
+      const walletUrl = `openid4vp://?client_id=${encodeURIComponent(`x509_san_dns:${hostname}`)}&request_uri=${encodeURIComponent(authUrl)}&request_uri_method=post`;
       
       // Generate QR code
       if (canvasRef.current) {

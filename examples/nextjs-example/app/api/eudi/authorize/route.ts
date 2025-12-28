@@ -5,7 +5,46 @@ import { getSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import * as jose from 'jose';
+import * as tls from 'tls';
 import '../../../../lib/session-storage';
+
+// Cache for certificate chain (reuse across requests)
+let certificateCache: string[] | null = null;
+
+async function getCertificateChain(hostname: string): Promise<string[]> {
+  if (certificateCache) {
+    return certificateCache;
+  }
+
+  return new Promise((resolve, reject) => {
+    const socket = tls.connect(443, hostname, {
+      servername: hostname,
+      rejectUnauthorized: true
+    }, () => {
+      const cert = socket.getPeerCertificate(true);
+      const chain: string[] = [];
+      
+      let current = cert;
+      while (current) {
+        if (current.raw) {
+          chain.push(current.raw.toString('base64'));
+        }
+        current = (current as any).issuerCertificate;
+        // Prevent infinite loop
+        if (current === cert) break;
+      }
+      
+      socket.end();
+      certificateCache = chain;
+      resolve(chain);
+    });
+
+    socket.on('error', (err) => {
+      console.error('[CERT] Failed to fetch certificate:', err);
+      reject(err);
+    });
+  });
+}
 
 // Handle POST requests (Lissi wallet uses request_uri_method=post)
 export async function POST(request: NextRequest) {
@@ -90,6 +129,18 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
     
     console.log('[AUTHORIZE] Using nonce', { nonce, walletNonce });
 
+    // Fetch certificate chain for x509_san_dns scheme
+    const hostname = new URL(request.nextUrl.origin).hostname;
+    let x5c: string[] | undefined;
+    
+    try {
+      x5c = await getCertificateChain(hostname);
+      console.log('[AUTHORIZE] Certificate chain fetched', { certCount: x5c.length });
+    } catch (error) {
+      console.warn('[AUTHORIZE] Failed to fetch certificate chain, proceeding without x5c', error);
+      // Continue without x5c - some wallets may accept it for testing
+    }
+
     const authRequest = {
       response_uri: callbackUrl,
       iss: request.nextUrl.origin,
@@ -171,14 +222,18 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
     });
     
     // Create signed JWT with x509_san_dns scheme
-    // Note: In production, you'd need to add x5c header with your certificate chain
-    // For now, using self-signed approach - may need proper cert in production
+    const header: any = { 
+      alg: 'ES256', 
+      typ: 'oauth-authz-req+jwt'
+    };
+    
+    // Add x5c (certificate chain) if available
+    if (x5c && x5c.length > 0) {
+      header.x5c = x5c;
+    }
+    
     const jwt = await new jose.SignJWT(authRequest)
-      .setProtectedHeader({ 
-        alg: 'ES256', 
-        typ: 'oauth-authz-req+jwt'
-        // x5c: ["<base64-encoded-cert>", "<base64-encoded-ca-cert>"] // Add in production
-      })
+      .setProtectedHeader(header)
       .sign(privateKey);
     
     console.log('[AUTHORIZE] Signed JWT created', {
