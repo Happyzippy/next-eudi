@@ -204,16 +204,30 @@ async function handleRequest(request: NextRequest, walletNonce?: string) {
       }
     };
     
-    console.log('[AUTHORIZE] Creating unsigned request object', {
+    console.log('[AUTHORIZE] Creating signed JWT request object', {
       sessionId,
       authRequest: JSON.stringify(authRequest, null, 2)
     });
     
-    // Return unsigned request as plain JSON (redirect_uri scheme doesn't support signing)
-    return new NextResponse(JSON.stringify(authRequest), {
+    // Sign the authorization request as a JWT
+    // Even with redirect_uri scheme, the wallet expects a signed JWT
+    const jwt = await new jose.SignJWT(authRequest)
+      .setProtectedHeader({ 
+        alg: 'ES256',
+        typ: 'oauth-authz-req+jwt'
+      })
+      .sign(privateKey);
+    
+    console.log('[AUTHORIZE] Signed JWT created', { 
+      jwt: jwt.substring(0, 50) + '...',
+      length: jwt.length 
+    });
+    
+    // Return signed JWT with proper content type
+    return new NextResponse(jwt, {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/oauth-authz-req+jwt',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
