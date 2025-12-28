@@ -7,12 +7,38 @@ import crypto from 'crypto';
 import * as jose from 'jose';
 import '../../../../lib/session-storage';
 
+// Handle POST requests (Lissi wallet uses request_uri_method=post)
+export async function POST(request: NextRequest) {
+  try {
+    // Parse the form body to get wallet_nonce
+    const formData = await request.formData();
+    const walletNonce = formData.get('wallet_nonce');
+    
+    console.log('[AUTHORIZE] POST request received', {
+      walletNonce,
+      contentType: request.headers.get('content-type')
+    });
+    
+    // Pass wallet_nonce to shared handler
+    return handleRequest(request, walletNonce?.toString());
+  } catch (error) {
+    console.error('[AUTHORIZE] Error parsing POST body:', error);
+    // Fallback to handler if parsing fails
+    return handleRequest(request);
+  }
+}
+
 export async function GET(request: NextRequest) {
+  return handleRequest(request);
+}
+
+async function handleRequest(request: NextRequest, walletNonce?: string) {
   try {
     const sessionId = request.nextUrl.searchParams.get('session_id');
     
     console.log('[AUTHORIZE] Request received', {
       sessionId,
+      walletNonce,
       url: request.url,
       headers: Object.fromEntries(request.headers.entries()),
       userAgent: request.headers.get('user-agent')
@@ -58,7 +84,8 @@ export async function GET(request: NextRequest) {
     const jwk = JSON.parse(publicJwkStr);
     
     const now = Math.floor(Date.now() / 1000);
-    const nonce = crypto.randomBytes(16).toString('base64url');
+    // Use wallet_nonce if provided (from POST body), otherwise generate one
+    const nonce = walletNonce || crypto.randomBytes(16).toString('base64url');
     
     const authRequest = {
       response_uri: callbackUrl,
@@ -168,11 +195,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Handle POST requests (Lissi wallet uses request_uri_method=post)
-export async function POST(request: NextRequest) {
-  return GET(request);
 }
 
 // Handle preflight requests
