@@ -3,6 +3,7 @@
 
 import { getSession } from '@emtyg/next-eudi';
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import '../../../../lib/session-storage';
 
 export async function GET(request: NextRequest) {
@@ -40,12 +41,14 @@ export async function GET(request: NextRequest) {
     const redirectUrl = `${request.nextUrl.origin}/success`; // URL for user redirection after success
     
     const now = Math.floor(Date.now() / 1000);
+    const nonce = crypto.randomBytes(16).toString('base64url');
+    
     const authRequest = {
       response_uri: callbackUrl,
       client_id_scheme: 'redirect_uri',
       iss: request.nextUrl.origin,
       response_type: 'vp_token',
-      nonce: sessionId,
+      nonce: nonce,
       client_id: `redirect_uri:${callbackUrl}`,
       response_mode: 'direct_post',
       aud: 'https://self-issued.me/v2',
